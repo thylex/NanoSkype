@@ -21,6 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JOptionPane;
+import jssc.SerialPortList;
 import org.thylex.nanoskype.frontend.app.NanoSkypeApp;
 
 /**
@@ -58,7 +59,15 @@ public class Settings extends javax.swing.JFrame {
         loadSettings();
         setValues();
     }
-    
+
+    public String getPort() {
+        return appProps.getProperty("port");
+    }
+
+    public String getSpeed() {
+        return appProps.getProperty("speed");
+    }
+
     private void loadSettings() {
         Properties defaultProps = new Properties();
         defaultProps.setProperty("port", "COM3");
@@ -78,7 +87,7 @@ public class Settings extends javax.swing.JFrame {
     public void saveSettings() {
         appProps.setProperty("port", jComboBox1.getItemAt(jComboBox1.getSelectedIndex()));
         appProps.setProperty("speed", jComboBox2.getItemAt(jComboBox2.getSelectedIndex()));
-        
+
         try {
             OutputStream outstream = new FileOutputStream(new File(nanoApp.getConfigFilePath()));
             System.out.println(appProps.toString());
@@ -94,26 +103,44 @@ public class Settings extends javax.swing.JFrame {
 
     private void setValues() {
         //Set port
+        boolean portMatchFail = true;
         int portcount = jComboBox1.getItemCount();
         for (int i = 0; i < portcount; i++) {
             if (jComboBox1.getItemAt(i).equals(appProps.getProperty("port"))) {
                 jComboBox1.setSelectedIndex(i);
+                portMatchFail = false;
             }
+        }
+        if (portMatchFail) {
+            setVisible(true);
+            JOptionPane.showMessageDialog(this, "The saved port setting didn't match any detected port. Please check the settings and save when done.");
         }
 
         //Set speed
+        boolean speedMatchFail = true;
         int speedcount = jComboBox2.getItemCount();
         for (int i = 0; i < speedcount; i++) {
             if (jComboBox2.getItemAt(i).equals(appProps.getProperty("speed"))) {
                 jComboBox2.setSelectedIndex(i);
+                speedMatchFail = false;
             }
+        }
+        if (speedMatchFail) {
+            setVisible(true);
+            JOptionPane.showMessageDialog(this, "The saved speed setting didn't match any detected port. Please check the settings and save when done.");
         }
     }
 
     private void setLabels() {
         String[] speeds = {"9600", "19200", "38400", "57600", "115200"};
-        //Ports should be polled from jssc, not a set list
-        String[] ports = {"COM1", "COM2", "COM3"};
+
+        String[] ports;
+        ports = SerialPortList.getPortNames();
+        if (ports.length < 1) {
+            //Ports should be polled from jssc, not a set list
+            ports = new String[]{"COM1", "COM2", "COM3"};
+            System.out.println("No COM ports detected, faking a list");
+        }
 
         Locale currentLoc = Locale.getDefault();
         ResourceBundle res = ResourceBundle.getBundle("guiSettings", currentLoc);
